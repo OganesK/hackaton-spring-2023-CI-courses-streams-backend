@@ -1,0 +1,266 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+enum Role {
+    resident
+    moderator
+    administrator
+}
+
+enum mediaType {
+    image
+    video
+}
+
+enum filteringCategories {
+    business
+    development
+    design
+    management
+    analytic
+}
+
+model Email {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    email     String
+}
+
+model Message {
+    id        Int           @id @default(autoincrement())
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
+    text      String        @db.Text
+    sender    User          @relation(fields: [senderId], references: [id])
+    senderId  Int
+    group     MessagerGroup @relation(fields: [groupId], references: [id])
+    groupId   Int
+}
+
+model MessagerGroup {
+    id        Int       @id @default(autoincrement())
+    createdAt DateTime  @default(now())
+    title     String    @db.VarChar(512)
+    type      String
+    members   User[]
+    messages  Message[]
+}
+
+model User {
+    id               Int             @id @default(autoincrement())
+    createdAt        DateTime        @default(now())
+    city             String?         @db.VarChar(512)
+    shortDescription String?         @db.VarChar(512)
+    email            String          @unique @db.VarChar(512)
+    login            String          @unique @db.VarChar(512)
+    password         String          @db.VarChar(512)
+    firstname        String          @db.VarChar(512)
+    lastname         String          @db.VarChar(512)
+    role             Role?           @default(resident)
+    bio              String?         @db.Text
+    avatar           Media?          @relation(fields: [avatarId], references: [id])
+    avatarId         Int?
+    tokenVersion     Int?
+    publishedEvent   Event[]
+    ownerCompanies   Company[]
+    inWorks          Worker[]
+    groups           MessagerGroup[]
+    messages         Message[]
+    notifications    Notification[]
+    moderatedEntity  Moderation[]
+}
+
+model Company {
+    id                Int                 @id @default(autoincrement())
+    moderationChecked Boolean?            @default(false)
+    createdAt         DateTime            @default(now())
+    name              String              @db.VarChar(512)
+    avatar            Media?              @relation(fields: [avatarId], references: [id])
+    avatarId          Int?
+    description       String?             @db.Text
+    shortDescription  String?             @db.Text
+    activityKind      filteringCategories
+    owner             User                @relation(fields: [ownerID], references: [id])
+    ownerID           Int
+    contact           Contact?
+    projects          Project[]
+    isApproved        Boolean?            @default(false)
+    moderate          Moderation?         @relation(fields: [moderateId], references: [id])
+    moderateId        Int?                @unique
+}
+
+model Contact {
+    id                Int         @id @default(autoincrement())
+    moderationChecked Boolean?    @default(false)
+    emails            String[]    @db.VarChar(512)
+    adresses          String[]    @db.VarChar(512)
+    phones            String[]    @db.VarChar(512)
+    ownerCompany      Company     @relation(fields: [ownerCompanyID], references: [id])
+    ownerCompanyID    Int         @unique
+    isApproved        Boolean?    @default(false)
+    moderate          Moderation? @relation(fields: [moderateId], references: [id])
+    moderateId        Int?        @unique
+}
+
+model Project {
+    id                   Int                 @id @default(autoincrement())
+    moderationChecked    Boolean?            @default(false)
+    createdAt            DateTime            @default(now())
+    name                 String              @db.VarChar(512)
+    category             filteringCategories
+    poster               Media?              @relation("Poster", fields: [posterId], references: [id])
+    posterId             Int?
+    presentationMedia    Media[]             @relation("Media")
+    description          String              @db.Text
+    shortDescription     String              @db.Text
+    metrics              ProjectMetrics?
+    ownerCompany         Company             @relation(fields: [ownerCompanyID], references: [id])
+    ownerCompanyID       Int
+    workers              Worker[]
+    publishedPosts       Post[]
+    platformConfigShowed PlatformConfig[]
+    isApproved           Boolean?            @default(false)
+    moderate             Moderation?         @relation(fields: [moderateId], references: [id])
+    moderateId           Int?                @unique
+}
+
+model ProjectMetrics {
+    id             Int     @id @default(autoincrement())
+    workersCount   Int
+    earned         Float
+    investmentsGot Float
+    project        Project @relation(fields: [projectID], references: [id])
+    projectID      Int     @unique
+}
+
+model Worker {
+    id             Int      @id @default(autoincrement())
+    createdAt      DateTime @default(now())
+    position       String   @db.VarChar(512)
+    worker         User     @relation(fields: [workerID], references: [id])
+    workerID       Int
+    project        Project  @relation(fields: [projectID], references: [id])
+    projectID      Int
+    publishedPosts Post[]
+}
+
+model Post {
+    id                   Int                 @id @default(autoincrement())
+    moderationChecked    Boolean?            @default(false)
+    createdAt            DateTime            @default(now())
+    isOffer              Boolean             @default(false)
+    isResource           Boolean             @default(false)
+    isNews               Boolean             @default(false)
+    title                String              @db.VarChar(512)
+    category             filteringCategories
+    poster               Media?              @relation(name: "Post", fields: [posterId], references: [id])
+    posterId             Int?
+    postMedia            Media[]             @relation("postMedia")
+    tags                 String[]            @db.VarChar(512)
+    articleBody          String?             @db.Text
+    description          String              @db.Text
+    auditedAt            DateTime?
+    rejectMessage        String?             @db.Text
+    project              Project?            @relation(fields: [projectID], references: [id])
+    projectID            Int?
+    author               Worker?             @relation(fields: [authorID], references: [id])
+    authorID             Int?
+    platformConfigShowed PlatformConfig[]
+    isApproved           Boolean?            @default(false)
+    moderate             Moderation?         @relation(fields: [moderateId], references: [id])
+    moderateId           Int?                @unique
+}
+
+model Event {
+    id                   Int                 @id @default(autoincrement())
+    moderationChecked    Boolean?            @default(false)
+    name                 String              @db.VarChar(512)
+    isApproved           Boolean             @default(false)
+    poster               Media?              @relation(fields: [posterId], references: [id])
+    posterId             Int?
+    category             filteringCategories
+    description          String              @db.Text
+    shortDescription     String              @db.Text
+    date                 DateTime
+    organizer            String              @db.VarChar(512)
+    theme                String              @db.VarChar(512)
+    address              String              @db.VarChar(512)
+    format               String?             @db.VarChar(512)
+    moderate             Moderation?         @relation(fields: [moderateId], references: [id])
+    moderateId           Int?                @unique
+    platformConfigShowed PlatformConfig[]
+    user                 User?               @relation(fields: [userId], references: [id])
+    userId               Int?
+    stream               Stream?
+}
+
+model PlatformConfig {
+    id                         Int       @id @default(autoincrement())
+    createdAt                  DateTime  @default(now())
+    totalProjectCount          Int
+    totalCompanyCount          Int
+    totalBudgetInvestment      Int
+    totalExtraBudgetInvestment Int
+    platformTagline            String    @db.Text
+    platformTitle              String    @db.Text
+    platformDescription        String    @db.Text
+    platformShortDescription   String    @db.Text
+    newsShownOnLanding         Post[]
+    projectsShownOnLanding     Project[]
+    eventsShownOnLanding       Event[]
+}
+
+model Notification {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    theme     String   @db.VarChar(512)
+    body      String   @db.Text
+    toWhom    User     @relation(fields: [toWhomId], references: [id])
+    toWhomId  Int
+    checked   Boolean  @default(false)
+}
+
+model Moderation {
+    id          Int      @id @default(autoincrement())
+    moderatedAt DateTime @default(now())
+    auditor     User?    @relation(fields: [auditorId], references: [id])
+    auditorId   Int?
+    company     Company?
+    project     Project?
+    contact     Contact?
+    post        Post?
+    event       Event?
+}
+
+model Stream {
+    id  Int  @default(autoincrement()) @id
+    eventId Int?
+    event   Event?   @relation(fields: [eventId], references: [id])
+    streamKey  String      @default(uuid()) @unique
+    active     Boolean      @default(false)
+}
+
+model Media {
+    id             Int       @id @default(autoincrement())
+    createdAt      DateTime? @default(now())
+    url            String    @unique @db.VarChar(512)
+    type           mediaType
+    isApproved     Boolean   @default(false)
+    event          Event[]
+    post           Post[]    @relation(name: "Post")
+    projectPoster  Project[] @relation(name: "Poster")
+    projectMedia   Project?  @relation(name: "Media", fields: [projectMediaId], references: [id])
+    projectMediaId Int?
+    company        Company[]
+    user           User[]
+    postMedia      Post?     @relation("postMedia", fields: [postMediaId], references: [id])
+    postMediaId    Int?
+}
