@@ -28,7 +28,9 @@ export const nms = new NodeMediaSever(config);
 const getStreamKeyFromStreamPath = (path: string) => {
   const parts = path.split('/');
 
-  return parts[parts.length - 1];
+  console.log(parts[2])
+
+  return parts[2];
 };
 
 nms.on('prePublish', async (id, StreamPath, args) => {
@@ -58,7 +60,6 @@ nms.on('prePublish', async (id, StreamPath, args) => {
   console.log('[NodeEvent on prePublish]', `id=${id} StreamPath=${StreamPath} args=${JSON.stringify(args)}`);
 });
 
-nms.run();
 
 nms.on('doneConnect', async (id, StreamPath, args) => {
 
@@ -73,7 +74,7 @@ nms.on('doneConnect', async (id, StreamPath, args) => {
 });
 
 nms.on('donePlay', async (id, StreamPath, args) => {
-  // const streamKey = getStreamKeyFromStreamPath(StreamPath);
+  const streamKey = getStreamKeyFromStreamPath(StreamPath);
   console.log(streamKey);
 
   // await prisma.stream.update({
@@ -85,3 +86,4 @@ nms.on('donePlay', async (id, StreamPath, args) => {
   //   },
   // });
 });
+nms.run();
